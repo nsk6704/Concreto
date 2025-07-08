@@ -9,6 +9,10 @@ import {
 import { COLORS } from '@/constants/Colors';
 import CustomSlider from '@/components/CustomSlider';
 import PrimaryButton from '@/components/PrimaryButton';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveMixData } from '@/utils/mixHistoryService';
+import { getSensorData } from '@/utils/esp32Api';
+import { Alert, TextInput } from 'react-native';
 
 // Define preset mix templates
 const MIX_TEMPLATES = [
@@ -24,18 +28,60 @@ export default function DesignInputsScreen() {
   const [waterValue, setWaterValue] = useState(20);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [designName, setDesignName] = useState('');
 
   const total = cementValue + sandValue + waterValue;
   const isValidMix = total === 100;
 
-  const handleSubmit = () => {
-    // In a real app, you would send this data to a backend service
+  const handleSubmit = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to save mix designs');
+      return;
+    }
+
+    if (!isValidMix) {
+      Alert.alert('Error', 'Total percentage must equal 100% to submit');
+      return;
+    }
+
+    setSaving(true);
     setIsSubmitted(true);
 
-    // Reset the submitted state after a delay
-    setTimeout(() => {
+    try {
+      // Get current sensor data (or mock data)
+      const sensorData = (await getSensorData()) || {
+        moisture: 12,
+        temperature: 32,
+        loadCell: 55,
+      };
+
+      // Save mix data to Firebase
+      await saveMixData({
+        userId: user.uid,
+        date: new Date(),
+        cement: cementValue,
+        sand: sandValue,
+        water: waterValue,
+        temperature: sensorData.temperature,
+        moisture: sensorData.moisture,
+        loadCell: sensorData.loadCell,
+        notes: designName || 'Unnamed Mix',
+      });
+
+      // Reset the submitted state after a delay
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setDesignName('');
+      }, 3000);
+    } catch (error) {
+      console.error('Error saving mix data:', error);
+      Alert.alert('Error', 'Failed to save mix data');
       setIsSubmitted(false);
-    }, 3000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleBalanceMix = () => {
@@ -183,6 +229,16 @@ export default function DesignInputsScreen() {
             />
           )}
 
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Mix Name (optional)</Text>
+            <TextInput
+              style={styles.textInput}
+              value={designName}
+              onChangeText={setDesignName}
+              placeholder="e.g., Basement Foundation Mix"
+            />
+          </View>
+
           <PrimaryButton
             title={isSubmitted ? 'Design Submitted!' : 'Submit Mix Design'}
             onPress={handleSubmit}
@@ -313,5 +369,23 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     marginTop: 8,
     textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: COLORS.darkGray,
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 8,
+    height: 50,
+    paddingHorizontal: 16,
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: COLORS.darkGray,
   },
 });

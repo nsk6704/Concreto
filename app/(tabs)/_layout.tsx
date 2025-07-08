@@ -1,6 +1,12 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
-import { Play, Sliders, Activity, History, User } from 'lucide-react-native';
+import {
+  Play,
+  Sliders,
+  Activity,
+  History, // You can use either History or LineChart icon
+  User,
+} from 'lucide-react-native';
 import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
@@ -64,13 +70,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="previous-mixes"
+        name="analytics"
         options={{
-          title: 'History',
+          title: 'Analytics',
           tabBarIcon: ({ color, size }) => (
             <History size={size} color={color} />
           ),
-          headerTitle: 'Previous Mixes',
+          headerTitle: 'Mix Analytics & History',
         }}
       />
       <Tabs.Screen
@@ -90,7 +96,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    height: 65,
+    height: 60,
     paddingBottom: 10,
     paddingTop: 5,
   },
